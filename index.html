@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6fa">
+  <title>Studyspace | Homework planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20243a;
+      --muted: #788097;
+      --line: #e8eaf1;
+      --canvas: #f5f6fa;
+      --indigo: #5148c8;
+      --indigo-soft: #eeedff;
+      --red: #dc555b;
+      --red-soft: #fff0ef;
+      --yellow: #bd851a;
+      --yellow-soft: #fff6dd;
+      --green: #278b67;
+      --green-soft: #e7f6ef;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: 'DM Sans', sans-serif; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .display { font-family: 'Space Grotesk', sans-serif; }
+    .topbar { background: rgba(255,255,255,.88); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px); }
+    .brand-mark { background: var(--indigo); box-shadow: 0 5px 12px #5148c833; }
+    .nav-button { color: #737991; border-bottom: 2px solid transparent; transition: color .16s, border-color .16s; }
+    .nav-button:hover, .nav-button.active { color: var(--indigo); }
+    .nav-button.active { border-color: var(--indigo); }
+    .surface { background: white; border: 1px solid var(--line); border-radius: 8px; }
+    .eyebrow { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .filter-button { color: #757b91; border: 1px solid transparent; transition: all .15s ease; }
+    .filter-button:hover { background: #f5f5fb; color: var(--ink); }
+    .filter-button.active { color: var(--indigo); background: var(--indigo-soft); border-color: #dedcff; }
+    .status-pill { border: 0; border-radius: 999px; font-size: 12px; font-weight: 700; padding: 6px 10px; transition: filter .15s, transform .15s; white-space: nowrap; }
+    .status-pill:hover { filter: saturate(1.25); transform: translateY(-1px); }
+    .status-due { color: var(--red); background: var(--red-soft); }
+    .status-progress { color: var(--yellow); background: var(--yellow-soft); }
+    .status-complete { color: var(--green); background: var(--green-soft); }
+    .task-row { border-bottom: 1px solid #eff0f5; animation: rise .25s ease both; }
+    .task-row:last-child { border-bottom: 0; }
+    .date-field, .form-field { color: var(--ink); background: white; border: 1px solid #dfe2eb; border-radius: 6px; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .date-field:focus, .form-field:focus { border-color: #8983e0; box-shadow: 0 0 0 3px #5148c81a; }
+    .calendar-day { min-height: 112px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: white; padding: 8px; transition: background .15s; }
+    .calendar-day:nth-child(7n) { border-right: 0; }
+    .calendar-day:hover { background: #fafaff; }
+    .calendar-day.outside { background: #fafbfc; }
+    .calendar-day.selected { box-shadow: inset 0 0 0 2px var(--indigo); position: relative; z-index: 1; }
+    .day-number { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; color: #656c83; font-size: 12px; font-weight: 600; }
+    .outside .day-number { color: #b7bbca; }
+    .calendar-task { display: block; overflow: hidden; border-radius: 4px; padding: 4px 5px; margin-top: 4px; text-align: left; font-size: 10px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+    .calendar-task.status-due { border-left: 2px solid var(--red); }
+    .calendar-task.status-progress { border-left: 2px solid var(--yellow); }
+    .calendar-task.status-complete { border-left: 2px solid var(--green); }
+    .calendar-task:hover { filter: brightness(.97); }
+    .icon-button { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; color: #60677c; background: white; }
+    .icon-button:hover { color: var(--indigo); border-color: #c9c5f4; background: #fafaff; }
+    .primary-button { background: var(--indigo); color: white; transition: background .15s, transform .15s; }
+    .primary-button:hover { background: #4038b1; transform: translateY(-1px); }
+    .empty-state { border: 1px dashed #d9dce7; border-radius: 8px; }
+    .lock-panel { background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 24px 70px #22243a1c; }
+    .shutdown-button { background: #292d43; box-shadow: 0 8px 24px #20243a30; }
+    .shutdown-button:hover { background: #171a2b; }
+    .loading-track { height: 4px; overflow: hidden; border-radius: 999px; background: #eeedff; }
+    .loading-sweep { width: 38%; height: 100%; border-radius: inherit; background: var(--indigo); animation: loading-sweep 1.1s ease-in-out infinite alternate; }
+    @keyframes loading-sweep { from { transform: translateX(-8%); } to { transform: translateX(175%); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 640px) {
+      .calendar-day { min-height: 78px; padding: 5px 3px; }
+      .calendar-task { padding: 3px; font-size: 9px; }
+      .calendar-day.selected { box-shadow: inset 0 0 0 2px var(--indigo); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div id="app-shell">
+  <header class="topbar sticky top-0 z-20">
+    <div class="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <a class="flex items-center gap-3" href="#" aria-label="Studyspace home">
+        <span class="brand-mark grid h-9 w-9 place-items-center rounded-lg text-white" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4.75A2.75 2.75 0 0 1 7.75 2H20v17H7.75A2.75 2.75 0 0 0 5 21.75z"/><path d="M5 5v16.75M9 7h7M9 11h7"/></svg>
+        </span>
+        <span class="display text-[17px] font-bold tracking-tight">studyspace<span class="text-[#5148c8]">.</span></span>
+      </a>
+      <nav class="flex h-full min-w-0 items-center gap-2 overflow-x-auto sm:gap-6" aria-label="Main navigation">
+        <button class="nav-button active h-full whitespace-nowrap px-1 text-xs font-semibold" data-view="dashboard" aria-current="page">Tasks</button>
+        <button class="nav-button h-full whitespace-nowrap px-1 text-xs font-semibold" data-view="upcoming">Upcoming</button>
+        <button class="nav-button h-full whitespace-nowrap px-1 text-xs font-semibold" data-view="completed">Completed <span id="completed-nav-count" class="ml-1 text-[10px] text-[#9a9fb0]">0</span></button>
+        <button class="nav-button h-full whitespace-nowrap px-1 text-xs font-semibold" data-view="calendar">Calendar</button>
+        <button class="nav-button h-full whitespace-nowrap px-1 text-xs font-semibold" data-view="school" aria-label="Moor End Academy calendar">School</button>
+      </nav>
+      <div class="hidden items-center gap-2 text-xs font-medium text-[#858ba0] sm:flex"><span class="h-2 w-2 rounded-full bg-[#47a984]"></span> Your study plan</div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+    <section id="dashboard-view">
+      <div class="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p class="eyebrow mb-2">Your workspace <span class="px-1 text-[#c4c7d2]">/</span> Tasks</p>
+          <h1 class="display text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">Homework tracker</h1>
+          <p class="mt-2 text-sm text-[#788097]">A clear view of what is due and what you are working on.</p>
+        </div>
+        <button id="dashboard-add" class="primary-button inline-flex h-10 items-center justify-center gap-2 self-start rounded-md px-4 text-sm font-semibold sm:self-auto">
+          <span class="text-lg leading-none" aria-hidden="true">+</span> Add homework
+        </button>
+      </div>
+
+      <div class="mb-6 grid grid-cols-3 gap-3 sm:gap-4">
+        <article class="surface flex min-h-[92px] items-center gap-3 p-3 sm:gap-4 sm:p-5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#fff0ef] text-[#dc555b]" aria-hidden="true">!</span>
+          <div><p class="eyebrow">Due</p><p id="due-count" class="display mt-0.5 text-2xl font-bold">0</p></div>
+        </article>
+        <article class="surface flex min-h-[92px] items-center gap-3 p-3 sm:gap-4 sm:p-5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#fff6dd] text-[#bd851a]" aria-hidden="true">~</span>
+          <div><p class="eyebrow">In progress</p><p id="progress-count" class="display mt-0.5 text-2xl font-bold">0</p></div>
+        </article>
+        <article class="surface flex min-h-[92px] items-center gap-3 p-3 sm:gap-4 sm:p-5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#e7f6ef] text-[#278b67]" aria-hidden="true">✓</span>
+          <div><p class="eyebrow">Complete</p><p id="complete-count" class="display mt-0.5 text-2xl font-bold">0</p></div>
+        </article>
+      </div>
+
+      <section class="surface overflow-hidden" aria-label="Homework assignments">
+        <div class="flex flex-col gap-3 border-b border-[#e8eaf1] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div><h2 class="display text-base font-bold">Active assignments</h2><p id="task-count" class="mt-0.5 text-xs text-[#858ba0]">0 assignments</p></div>
+          <div id="filters" class="flex flex-wrap gap-1" role="tablist" aria-label="Filter assignments">
+            <button class="filter-button active rounded-md px-3 py-1.5 text-xs font-semibold" data-filter="All" role="tab" aria-selected="true">All</button>
+            <button class="filter-button rounded-md px-3 py-1.5 text-xs font-semibold" data-filter="Due" role="tab" aria-selected="false">Due</button>
+            <button class="filter-button rounded-md px-3 py-1.5 text-xs font-semibold" data-filter="In Progress" role="tab" aria-selected="false">In Progress</button>
+          </div>
+        </div>
+        <div id="task-list" class="px-4 sm:px-5" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <section id="upcoming-view" class="hidden">
+      <div class="mb-7">
+        <p class="eyebrow mb-2">Your workspace <span class="px-1 text-[#c4c7d2]">/</span> Schedule</p>
+        <h1 class="display text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">Upcoming homework</h1>
+        <p class="mt-2 text-sm text-[#788097]">Your next deadlines, in date order.</p>
+      </div>
+      <section class="surface overflow-hidden" aria-label="Upcoming homework deadlines">
+        <div class="flex items-center justify-between border-b border-[#e8eaf1] px-4 py-4 sm:px-5">
+          <div><h2 class="display text-base font-bold">Coming up</h2><p id="upcoming-count" class="mt-0.5 text-xs text-[#858ba0]">0 assignments</p></div>
+          <button class="text-xs font-semibold text-[#5148c8] hover:text-[#4038b1]" data-view="calendar">+ Add homework</button>
+        </div>
+        <div id="upcoming-list" class="px-4 sm:px-5" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <section id="completed-view" class="hidden">
+      <div class="mb-7">
+        <p class="eyebrow mb-2">Your workspace <span class="px-1 text-[#c4c7d2]">/</span> Archive</p>
+        <h1 class="display text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">Completed homework</h1>
+        <p class="mt-2 text-sm text-[#788097]">Finished assignments, kept in one place.</p>
+      </div>
+      <section class="surface overflow-hidden" aria-label="Completed homework assignments">
+        <div class="flex items-center justify-between border-b border-[#e8eaf1] px-4 py-4 sm:px-5">
+          <div><h2 class="display text-base font-bold">Finished</h2><p id="completed-count" class="mt-0.5 text-xs text-[#858ba0]">0 assignments</p></div>
+        </div>
+        <div id="completed-list" class="px-4 sm:px-5" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <section id="calendar-view" class="hidden">
+      <div class="mb-7">
+        <p class="eyebrow mb-2">Your workspace <span class="px-1 text-[#c4c7d2]">/</span> Calendar</p>
+        <h1 class="display text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">Homework calendar</h1>
+        <p class="mt-2 text-sm text-[#788097]">Plan ahead and keep every deadline in sight.</p>
+      </div>
+      <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section class="surface overflow-hidden" aria-label="Monthly homework calendar">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8eaf1] px-4 py-4 sm:px-5">
+            <div><p class="eyebrow">Monthly view</p><h2 id="month-label" class="display mt-1 text-xl font-bold">October 2026</h2></div>
+            <div class="flex items-center gap-2">
+              <button id="prev-month" class="icon-button" aria-label="Previous month" title="Previous month"><span aria-hidden="true">&#8592;</span></button>
+              <button id="next-month" class="icon-button" aria-label="Next month" title="Next month"><span aria-hidden="true">&#8594;</span></button>
+              <button id="today-month" class="ml-1 h-[34px] rounded-md border border-[#e8eaf1] px-3 text-xs font-semibold text-[#60677c] hover:border-[#c9c5f4] hover:text-[#5148c8]">October 2026</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-7 border-b border-[#e8eaf1] bg-[#fafbfc] text-center">
+            <div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Mon</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Tue</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Wed</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Thu</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Fri</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Sat</div><div class="py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#8a90a3] sm:text-[11px]">Sun</div>
+          </div>
+          <div id="calendar-grid" class="grid grid-cols-7" role="grid" aria-label="Calendar dates"></div>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#e8eaf1] px-4 py-3 text-[11px] font-medium text-[#737991] sm:px-5">
+            <span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-[#dc555b]"></i>Due</span><span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-[#e2ab3e]"></i>In progress</span><span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-[#47a984]"></i>Complete</span>
+          </div>
+        </section>
+
+        <aside class="surface p-5 sm:p-6">
+          <div class="mb-5 flex items-start justify-between gap-3">
+            <div><p class="eyebrow">Add to your plan</p><h2 class="display mt-1 text-xl font-bold">New homework</h2></div>
+            <span class="grid h-9 w-9 place-items-center rounded-md bg-[#eeedff] text-lg font-medium text-[#5148c8]" aria-hidden="true">+</span>
+          </div>
+          <form id="homework-form" class="space-y-4">
+            <label class="block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Subject / Platform</span><input class="form-field h-10 w-full px-3 text-sm" name="subject" type="text" placeholder="e.g. Sparx Science" required maxlength="80"></label>
+            <label class="block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Description</span><textarea class="form-field min-h-[88px] w-full resize-y px-3 py-2.5 text-sm" name="description" placeholder="What do you need to work on?" required maxlength="240"></textarea></label>
+            <label class="block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Due date</span><input class="form-field h-10 w-full px-3 text-sm" id="new-due-date" name="dueDate" type="date" required></label>
+            <label class="block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Repeats</span><select class="form-field h-10 w-full px-3 text-sm" name="frequency"><option value="once">Does not repeat</option><option value="weekly">Weekly</option><option value="fortnightly">Every 2 weeks</option><option value="monthly">Monthly</option></select><span class="mt-1.5 block text-[11px] text-[#858ba0]">Repeating homework adds 12 dated assignments to your schedule.</span></label>
+            <button class="primary-button flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold" type="submit">Add homework <span aria-hidden="true">&#8594;</span></button>
+            <p id="form-message" class="min-h-4 text-center text-xs text-[#278b67]" aria-live="polite"></p>
+          </form>
+        </aside>
+      </div>
+    </section>
+
+    <section id="school-view" class="hidden">
+      <div class="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <p class="eyebrow mb-2">Your workspace <span class="px-1 text-[#c4c7d2]">/</span> Moor End Academy</p>
+          <h1 class="display text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">School calendar</h1>
+          <p class="mt-2 text-sm text-[#788097]">Official diary dates and term boundaries for Moor End Academy, Huddersfield.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a class="inline-flex h-10 items-center rounded-md border border-[#e8eaf1] bg-white px-3 text-xs font-semibold text-[#5148c8] hover:border-[#c9c5f4]" href="https://www.moorend.org/Calendar/" target="_blank" rel="noopener noreferrer">Live school diary <span class="ml-2" aria-hidden="true">&#8599;</span></a>
+          <a class="inline-flex h-10 items-center rounded-md border border-[#e8eaf1] bg-white px-3 text-xs font-semibold text-[#5148c8] hover:border-[#c9c5f4]" href="https://www.moorend.org/ical.ics" target="_blank" rel="noopener noreferrer">Subscribe to calendar <span class="ml-2" aria-hidden="true">&#8599;</span></a>
+          <a class="inline-flex h-10 items-center rounded-md border border-[#e8eaf1] bg-white px-3 text-xs font-semibold text-[#5148c8] hover:border-[#c9c5f4]" href="https://www.moorend.org/Student-Links" target="_blank" rel="noopener noreferrer">Student links <span class="ml-2" aria-hidden="true">&#8599;</span></a>
+        </div>
+      </div>
+      <section class="surface overflow-hidden" aria-label="Official school calendar events">
+        <div class="flex flex-col gap-2 border-b border-[#e8eaf1] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div><h2 class="display text-base font-bold">Upcoming school dates</h2><p id="school-event-count" class="mt-0.5 text-xs text-[#858ba0]">Loading school dates</p></div>
+          <p class="text-[11px] text-[#858ba0]">Official feed checked 24 September 2026</p>
+        </div>
+        <div id="school-events-list" class="px-4 sm:px-5" aria-live="polite"></div>
+        <div class="border-t border-[#e8eaf1] px-4 py-3 text-xs text-[#788097] sm:px-5">This is a snapshot of the public academy diary. Use the live school diary for changes and personal timetable details.</div>
+      </section>
+    </section>
+  </main>
+  <footer class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
+    <div class="flex justify-end border-t border-[#e8eaf1] pt-4 text-xs text-[#858ba0]">Last updated <time id="last-updated" class="ml-1 font-medium text-[#626980]">Loading...</time></div>
+  </footer>
+  </div>
+
+  <button id="shutdown-button" class="shutdown-button fixed bottom-5 right-5 z-30 inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-semibold text-white" type="button" aria-haspopup="dialog" aria-controls="shutdown-dialog">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v10M5.6 5.6a9 9 0 1 0 12.8 0"/></svg>
+    Shutdown
+  </button>
+
+  <div id="shutdown-dialog" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#20243a80] p-4" role="dialog" aria-modal="true" aria-labelledby="shutdown-title">
+    <form id="shutdown-form" class="lock-panel w-full max-w-sm p-6 sm:p-7">
+      <p class="eyebrow">Studyspace controls</p>
+      <h2 id="shutdown-title" class="display mt-2 text-xl font-bold">Shut down planner?</h2>
+      <p class="mt-2 text-sm leading-6 text-[#788097]">Enter your password to lock this planner. You will need it again to reopen your tasks.</p>
+      <label class="mt-5 block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Password</span><input id="shutdown-password" class="form-field h-10 w-full px-3 text-sm" type="password" autocomplete="current-password" required></label>
+      <p id="shutdown-error" class="mt-2 min-h-4 text-xs text-[#dc555b]" aria-live="polite"></p>
+      <div class="mt-4 flex justify-end gap-2"><button id="cancel-shutdown" class="h-10 rounded-md border border-[#e8eaf1] px-4 text-sm font-semibold text-[#60677c] hover:bg-[#f8f8fb]" type="button">Cancel</button><button class="h-10 rounded-md bg-[#292d43] px-4 text-sm font-semibold text-white hover:bg-[#171a2b]" type="submit">Shutdown</button></div>
+    </form>
+  </div>
+
+  <section id="lock-screen" class="fixed inset-0 z-40 hidden flex items-center justify-center bg-[#f5f6fa] p-4" aria-labelledby="lock-title">
+    <div id="unlock-panel" class="lock-panel w-full max-w-sm p-6 text-center sm:p-8">
+      <span class="brand-mark mx-auto grid h-11 w-11 place-items-center rounded-lg text-white" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5z"/><path d="M12 14v3"/></svg></span>
+      <p class="eyebrow mt-5">Studyspace is locked</p>
+      <h1 id="lock-title" class="display mt-1 text-2xl font-bold">Welcome back</h1>
+      <p class="mt-2 text-sm text-[#788097]">Enter your password to reopen your planner.</p>
+      <form id="unlock-form" class="mt-6 text-left">
+        <label class="block"><span class="mb-1.5 block text-xs font-semibold text-[#4e546b]">Password</span><input id="unlock-password" class="form-field h-11 w-full px-3 text-sm" type="password" autocomplete="current-password" required></label>
+        <p id="unlock-error" class="mt-2 min-h-4 text-xs text-[#dc555b]" aria-live="polite"></p>
+        <button class="primary-button mt-3 h-11 w-full rounded-md text-sm font-semibold" type="submit">Unlock planner</button>
+      </form>
+    </div>
+    <div id="reopen-loading" class="lock-panel hidden w-full max-w-sm p-6 text-center sm:p-8" role="status" aria-live="polite">
+      <span class="brand-mark mx-auto grid h-11 w-11 place-items-center rounded-lg text-white" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4.75A2.75 2.75 0 0 1 7.75 2H20v17H7.75A2.75 2.75 0 0 0 5 21.75z"/><path d="M5 5v16.75M9 7h7M9 11h7"/></svg></span>
+      <p class="eyebrow mt-5">One moment</p>
+      <h2 class="display mt-1 text-xl font-bold">Preparing your planner</h2>
+      <p class="mt-2 text-sm text-[#788097]">Getting your saved homework and calendar ready.</p>
+      <div class="loading-track mt-6" role="progressbar" aria-label="Preparing your planner"><div class="loading-sweep"></div></div>
+    </div>
+  </section>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'studyspace-homework-v1';
+      const LOCK_STORAGE_KEY = 'studyspace-locked-v1';
+      const UPDATED_STORAGE_KEY = 'studyspace-last-updated-v1';
+      const APP_PASSWORD = 'isaacm123';
+      const statuses = ['Due', 'In Progress', 'Complete'];
+      const seedTasks = [
+        { id: 'seed-a', subject: 'Sparx Science', description: 'Homework for Monday 12th October', dueDate: '2026-10-12', status: 'Due' },
+        { id: 'seed-b', subject: 'Sparx Science', description: 'Homework for Monday 5th October', dueDate: '2026-10-05', status: 'Complete' },
+        { id: 'seed-c', subject: 'Sparx Science', description: 'Homework for Monday 28th September', dueDate: '2026-09-28', status: 'Complete' }
+      ];
+      const schoolEvents = [
+        { date: '2026-10-23', title: 'Closed to pupils', url: 'https://www.moorend.org/Diary/Closed-to-Students-2026-10-23' },
+        { date: '2026-10-23', title: 'Half-term 1 ends (HT1)', url: 'https://www.moorend.org/Diary/Halfterm-1-Ends-HT1-2026-10-23' },
+        { date: '2026-11-02', title: 'Half-term 2 starts (HT2)', url: 'https://www.moorend.org/Diary/Halfterm-2-Starts-HT2-2026-11-02' },
+        { date: '2026-12-18', title: 'Half-term 2 ends (HT2)', url: 'https://www.moorend.org/Diary/Halfterm-2-Ends-HT2-2026-12-18' },
+        { date: '2026-12-18', title: 'Closed to pupils', url: 'https://www.moorend.org/Diary/Closed-to-Students-2026-12-18' },
+        { date: '2027-01-04', title: 'Half-term 3 starts (HT3)', url: 'https://www.moorend.org/Diary/Halfterm-3-Starts-HT3-2027-01-04' },
+        { date: '2027-02-12', title: 'Half-term 3 ends (HT3)', url: 'https://www.moorend.org/Diary/Halfterm-3-Ends-HT3-2027-02-12' },
+        { date: '2027-02-12', title: 'Closed to pupils', url: 'https://www.moorend.org/Diary/Closed-to-Students-2027-02-12' },
+        { date: '2027-02-22', title: 'Half-term 4 starts (HT4)', url: 'https://www.moorend.org/Diary/Halfterm-4-Starts-HT4-2027-02-22' },
+        { date: '2027-03-25', title: 'Half-term 4 ends (HT4)', url: 'https://www.moorend.org/Diary/Halfterm-4-Ends-HT4-2027-03-25' },
+        { date: '2027-04-12', title: 'Half-term 5 starts (HT5)', url: 'https://www.moorend.org/Diary/Halfterm-5-Starts-HT5-2027-04-12' },
+        { date: '2027-05-28', title: 'Half-term 5 ends (HT5)', url: 'https://www.moorend.org/Diary/Halfterm-5-Ends-HT5-2027-05-28' },
+        { date: '2027-06-07', title: 'Half-term 6 starts (HT6)', url: 'https://www.moorend.org/Diary/Halfterm-6-Starts-HT6-2027-06-07' },
+        { date: '2027-07-21', title: 'Half-term 6 ends (HT6)', url: 'https://www.moorend.org/Diary/Halfterm-6-Ends-HT6-2027-07-21' },
+        { date: '2027-07-21', title: 'Closed to pupils', url: 'https://www.moorend.org/Diary/Closed-to-Students-2027-07-21' }
+      ];
+      let tasks = loadTasks();
+      let activeFilter = 'All';
+      let shownYear = 2026;
+      let shownMonth = 9;
+      let selectedDate = '2026-10-12';
+      let isLocked = false;
+      let lastUpdatedAt = loadLastUpdated();
+
+      try {
+        isLocked = localStorage.getItem(LOCK_STORAGE_KEY) === 'true';
+      } catch (error) {
+        console.warn('Planner lock state could not be read.', error);
+      }
+
+      function loadTasks() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (Array.isArray(saved) && saved.every(task => task && typeof task.id === 'string' && typeof task.subject === 'string' && typeof task.description === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate) && statuses.includes(task.status))) return saved;
+        } catch (error) {
+          console.warn('Saved homework could not be read; loading the starter assignments.', error);
+        }
+        return seedTasks.map(task => ({ ...task }));
+      }
+
+      function loadLastUpdated() {
+        try {
+          const saved = localStorage.getItem(UPDATED_STORAGE_KEY);
+          if (saved && !Number.isNaN(Date.parse(saved))) return saved;
+          const initial = new Date().toISOString();
+          localStorage.setItem(UPDATED_STORAGE_KEY, initial);
+          return initial;
+        } catch (error) {
+          return new Date().toISOString();
+        }
+      }
+
+      function renderLastUpdated() {
+        const date = new Date(lastUpdatedAt);
+        const element = document.getElementById('last-updated');
+        element.dateTime = date.toISOString();
+        element.textContent = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+      }
+
+      function saveTasks() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+          lastUpdatedAt = new Date().toISOString();
+          localStorage.setItem(UPDATED_STORAGE_KEY, lastUpdatedAt);
+          renderLastUpdated();
+        } catch (error) {
+          console.error('Homework could not be saved to this browser.', error);
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+      }
+
+      function statusClass(status) {
+        return status === 'Due' ? 'status-due' : status === 'In Progress' ? 'status-progress' : 'status-complete';
+      }
+
+      function formatDate(dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(year, month - 1, day));
+      }
+
+      function frequencyLabel(frequency) {
+        return ({ weekly: 'Weekly', fortnightly: 'Every 2 weeks', monthly: 'Monthly' })[frequency] || 'One-time';
+      }
+
+      function daysUntil(dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const due = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return Math.round((due - today) / 86400000);
+      }
+
+      function renderTaskRows(containerId, taskList, mode) {
+        const container = document.getElementById(containerId);
+        if (!taskList.length) {
+          const emptyCopy = mode === 'completed'
+            ? ['No completed homework yet', 'Finished assignments will be saved here.']
+            : mode === 'upcoming'
+              ? ['All caught up', 'No upcoming deadlines are scheduled.']
+              : ['Nothing in this list', 'Try another status filter or add a homework task.'];
+          container.innerHTML = `<div class="empty-state my-5 px-4 py-10 text-center"><p class="display text-sm font-bold">${emptyCopy[0]}</p><p class="mt-1 text-xs text-[#858ba0]">${emptyCopy[1]}</p></div>`;
+          return;
+        }
+        container.innerHTML = taskList.map(task => {
+          const completed = mode === 'completed';
+          const days = daysUntil(task.dueDate);
+          const dueNote = mode === 'upcoming' ? (days < 0 ? `Overdue by ${Math.abs(days)} ${Math.abs(days) === 1 ? 'day' : 'days'}` : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `In ${days} days`) : `Due ${escapeHtml(formatDate(task.dueDate))}`;
+          const cadence = task.frequency && task.frequency !== 'once' ? `<span class="mx-1.5 text-[#c4c7d2]">/</span><span class="font-medium text-[#626980]">${escapeHtml(frequencyLabel(task.frequency))}</span>` : '';
+          const action = completed
+            ? `<button class="rounded-md border border-[#e8eaf1] px-3 py-2 text-xs font-semibold text-[#626980] hover:border-[#c9c5f4] hover:text-[#5148c8]" type="button" data-reopen="${escapeHtml(task.id)}">Reopen</button>`
+            : `<div class="flex items-center justify-between gap-3 sm:justify-end"><label class="flex items-center gap-2 text-[11px] font-semibold text-[#858ba0]"><span class="sr-only">Change due date</span><span aria-hidden="true">Date</span><input class="date-field h-8 w-[132px] px-2 text-xs" type="date" value="${escapeHtml(task.dueDate)}" data-edit-date="${escapeHtml(task.id)}" aria-label="Change due date for ${escapeHtml(task.subject)}"></label><button class="status-pill ${statusClass(task.status)}" type="button" data-toggle-status="${escapeHtml(task.id)}" aria-label="Status: ${escapeHtml(task.status)}. Click to change status">${escapeHtml(task.status)} <span class="ml-1 opacity-60" aria-hidden="true">&#8635;</span></button></div>`;
+          return `<article class="task-row flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:gap-5" data-task-id="${escapeHtml(task.id)}"><div class="min-w-0 flex-1"><h3 class="text-sm font-semibold leading-snug text-[#292d43]">${escapeHtml(task.subject)} <span class="font-normal text-[#a0a5b5]">/</span> ${escapeHtml(task.description)}</h3><p class="mt-1.5 text-xs text-[#858ba0]">${dueNote}${cadence}${completed && task.completedAt ? `<span class="mx-1.5 text-[#c4c7d2]">/</span>Completed ${escapeHtml(formatDate(task.completedAt))}` : ''}</p></div>${action}</article>`;
+        }).join('');
+      }
+
+      function renderDashboard() {
+        document.getElementById('due-count').textContent = tasks.filter(task => task.status === 'Due').length;
+        document.getElementById('progress-count').textContent = tasks.filter(task => task.status === 'In Progress').length;
+        document.getElementById('complete-count').textContent = tasks.filter(task => task.status === 'Complete').length;
+        document.getElementById('completed-nav-count').textContent = tasks.filter(task => task.status === 'Complete').length;
+        const shownTasks = tasks.filter(task => task.status !== 'Complete' && (activeFilter === 'All' || task.status === activeFilter));
+        document.getElementById('task-count').textContent = `${shownTasks.length} ${shownTasks.length === 1 ? 'assignment' : 'assignments'}`;
+        renderTaskRows('task-list', shownTasks, 'tasks');
+      }
+
+      function renderUpcoming() {
+        const upcomingTasks = tasks.filter(task => task.status !== 'Complete').sort((left, right) => left.dueDate.localeCompare(right.dueDate));
+        document.getElementById('upcoming-count').textContent = `${upcomingTasks.length} ${upcomingTasks.length === 1 ? 'assignment' : 'assignments'}`;
+        renderTaskRows('upcoming-list', upcomingTasks, 'upcoming');
+      }
+
+      function renderCompleted() {
+        const completedTasks = tasks.filter(task => task.status === 'Complete').sort((left, right) => (right.completedAt || right.dueDate).localeCompare(left.completedAt || left.dueDate));
+        document.getElementById('completed-count').textContent = `${completedTasks.length} ${completedTasks.length === 1 ? 'assignment' : 'assignments'}`;
+        renderTaskRows('completed-list', completedTasks, 'completed');
+      }
+
+      function renderSchoolCalendar() {
+        const events = schoolEvents.filter(event => daysUntil(event.date) >= 0).sort((left, right) => left.date.localeCompare(right.date) || left.title.localeCompare(right.title));
+        document.getElementById('school-event-count').textContent = `${events.length} upcoming ${events.length === 1 ? 'date' : 'dates'}`;
+        const list = document.getElementById('school-events-list');
+        if (!events.length) {
+          list.innerHTML = '<div class="empty-state my-5 px-4 py-8 text-center"><p class="display text-sm font-bold">No upcoming dates in this snapshot</p><p class="mt-1 text-xs text-[#858ba0]">Check the live Moor End Academy diary for the latest dates.</p></div>';
+          return;
+        }
+        list.innerHTML = events.map(event => `<article class="task-row flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-5"><time class="w-32 shrink-0 text-xs font-semibold text-[#5148c8]" datetime="${event.date}">${escapeHtml(new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${event.date}T12:00:00`)))}</time><h3 class="min-w-0 flex-1 text-sm font-semibold text-[#292d43]">${escapeHtml(event.title)}</h3><a class="text-xs font-semibold text-[#788097] hover:text-[#5148c8]" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Details <span aria-hidden="true">&#8599;</span></a></article>`).join('');
+      }
+
+      function renderViews() {
+        renderDashboard();
+        renderUpcoming();
+        renderCompleted();
+        renderCalendar();
+      }
+
+      function dateKey(year, month, day) {
+        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+
+      function renderCalendar() {
+        const monthDate = new Date(shownYear, shownMonth, 1);
+        document.getElementById('month-label').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(monthDate);
+        const grid = document.getElementById('calendar-grid');
+        const startOffset = (monthDate.getDay() + 6) % 7;
+        const daysInMonth = new Date(shownYear, shownMonth + 1, 0).getDate();
+        const cellCount = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+        const cells = [];
+        for (let index = 0; index < cellCount; index++) {
+          const day = index - startOffset + 1;
+          const inMonth = day > 0 && day <= daysInMonth;
+          const key = inMonth ? dateKey(shownYear, shownMonth, day) : '';
+          const dayTasks = inMonth ? tasks.filter(task => task.dueDate === key) : [];
+          const taskMarkup = dayTasks.slice(0, 3).map(task => `<button type="button" class="calendar-task ${statusClass(task.status)} w-full" data-calendar-task="${escapeHtml(task.id)}" title="${escapeHtml(task.subject)}: ${escapeHtml(task.description)} (${escapeHtml(task.status)})">${escapeHtml(task.subject)}: ${escapeHtml(task.description)}</button>`).join('');
+          const moreMarkup = dayTasks.length > 3 ? `<p class="mt-1 text-[9px] font-semibold text-[#858ba0]">+${dayTasks.length - 3} more</p>` : '';
+          cells.push(`<div class="calendar-day ${inMonth ? '' : 'outside'} ${key && key === selectedDate ? 'selected' : ''}" role="gridcell" ${key ? `data-select-date="${key}" tabindex="0" aria-label="${escapeHtml(formatDate(key))}${dayTasks.length ? `, ${dayTasks.length} homework ${dayTasks.length === 1 ? 'task' : 'tasks'}` : ''}"` : 'aria-hidden="true"'}>${inMonth ? `<button type="button" class="day-number" data-select-date="${key}" aria-label="Select ${escapeHtml(formatDate(key))}">${day}</button>${taskMarkup}${moreMarkup}` : ''}</div>`);
+        }
+        grid.innerHTML = cells.join('');
+      }
+
+      function setView(view) {
+        ['dashboard', 'upcoming', 'completed', 'calendar', 'school'].forEach(name => {
+          document.getElementById(`${name}-view`).classList.toggle('hidden', view !== name);
+        });
+        document.querySelectorAll('[data-view]').forEach(button => {
+          const active = button.dataset.view === view;
+          button.classList.toggle('active', active);
+          if (active) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        });
+        if (view === 'dashboard') renderDashboard();
+        if (view === 'upcoming') renderUpcoming();
+        if (view === 'completed') renderCompleted();
+        if (view === 'calendar') renderCalendar();
+        if (view === 'school') renderSchoolCalendar();
+      }
+
+      function setLocked(locked) {
+        isLocked = locked;
+        try {
+          if (locked) localStorage.setItem(LOCK_STORAGE_KEY, 'true');
+          else localStorage.removeItem(LOCK_STORAGE_KEY);
+        } catch (error) {
+          console.warn('Planner lock state could not be saved.', error);
+        }
+        document.getElementById('app-shell').classList.toggle('hidden', locked);
+        document.getElementById('shutdown-button').classList.toggle('hidden', locked);
+        document.getElementById('lock-screen').classList.toggle('hidden', !locked);
+        document.body.classList.toggle('overflow-hidden', locked);
+        if (locked) document.getElementById('unlock-password').focus();
+      }
+
+      document.getElementById('shutdown-button').addEventListener('click', () => {
+        const dialog = document.getElementById('shutdown-dialog');
+        dialog.classList.remove('hidden');
+        dialog.classList.add('flex');
+        document.getElementById('shutdown-password').value = '';
+        document.getElementById('shutdown-error').textContent = '';
+        document.getElementById('shutdown-password').focus();
+      });
+      document.getElementById('cancel-shutdown').addEventListener('click', () => {
+        const dialog = document.getElementById('shutdown-dialog');
+        dialog.classList.add('hidden');
+        dialog.classList.remove('flex');
+        document.getElementById('shutdown-button').focus();
+      });
+      document.getElementById('shutdown-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const passwordField = document.getElementById('shutdown-password');
+        if (passwordField.value !== APP_PASSWORD) {
+          document.getElementById('shutdown-error').textContent = 'That password is not correct.';
+          passwordField.select();
+          return;
+        }
+        const dialog = document.getElementById('shutdown-dialog');
+        dialog.classList.add('hidden');
+        dialog.classList.remove('flex');
+        document.getElementById('shutdown-error').textContent = '';
+        setLocked(true);
+      });
+      document.getElementById('unlock-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const passwordField = document.getElementById('unlock-password');
+        if (passwordField.value !== APP_PASSWORD) {
+          document.getElementById('unlock-error').textContent = 'That password is not correct.';
+          passwordField.select();
+          return;
+        }
+        document.getElementById('unlock-error').textContent = '';
+        document.getElementById('unlock-panel').classList.add('hidden');
+        document.getElementById('reopen-loading').classList.remove('hidden');
+        const fontsReady = document.fonts?.ready?.catch(() => undefined) || Promise.resolve();
+        await Promise.all([fontsReady, new Promise(resolve => setTimeout(resolve, 1200))]);
+        document.getElementById('reopen-loading').classList.add('hidden');
+        document.getElementById('unlock-panel').classList.remove('hidden');
+        passwordField.value = '';
+        setLocked(false);
+      });
+
+      document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+      document.getElementById('dashboard-add').addEventListener('click', () => setView('calendar'));
+      document.getElementById('filters').addEventListener('click', event => {
+        const button = event.target.closest('[data-filter]');
+        if (!button) return;
+        activeFilter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach(filterButton => {
+          const active = filterButton === button;
+          filterButton.classList.toggle('active', active);
+          filterButton.setAttribute('aria-selected', String(active));
+        });
+        renderDashboard();
+      });
+      document.getElementById('task-list').addEventListener('click', event => {
+        const button = event.target.closest('[data-toggle-status]');
+        if (!button) return;
+        const task = tasks.find(item => item.id === button.dataset.toggleStatus);
+        if (!task) return;
+        task.status = statuses[(statuses.indexOf(task.status) + 1) % statuses.length];
+        if (task.status === 'Complete') task.completedAt = dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        else delete task.completedAt;
+        saveTasks();
+        renderViews();
+      });
+      document.getElementById('upcoming-list').addEventListener('click', event => {
+        const button = event.target.closest('[data-toggle-status]');
+        if (!button) return;
+        const task = tasks.find(item => item.id === button.dataset.toggleStatus);
+        if (!task) return;
+        task.status = statuses[(statuses.indexOf(task.status) + 1) % statuses.length];
+        if (task.status === 'Complete') task.completedAt = dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        else delete task.completedAt;
+        saveTasks();
+        renderViews();
+      });
+      document.getElementById('completed-list').addEventListener('click', event => {
+        const button = event.target.closest('[data-reopen]');
+        if (!button) return;
+        const task = tasks.find(item => item.id === button.dataset.reopen);
+        if (!task) return;
+        task.status = 'Due';
+        delete task.completedAt;
+        saveTasks();
+        renderViews();
+        setView('dashboard');
+      });
+      document.getElementById('task-list').addEventListener('change', event => {
+        const input = event.target.closest('[data-edit-date]');
+        if (!input || !input.value) return;
+        const task = tasks.find(item => item.id === input.dataset.editDate);
+        if (!task) return;
+        task.dueDate = input.value;
+        saveTasks();
+        renderViews();
+      });
+      document.getElementById('upcoming-list').addEventListener('change', event => {
+        const input = event.target.closest('[data-edit-date]');
+        if (!input || !input.value) return;
+        const task = tasks.find(item => item.id === input.dataset.editDate);
+        if (!task) return;
+        task.dueDate = input.value;
+        saveTasks();
+        renderViews();
+      });
+      document.getElementById('calendar-grid').addEventListener('click', event => {
+        const taskButton = event.target.closest('[data-calendar-task]');
+        if (taskButton) {
+          const task = tasks.find(item => item.id === taskButton.dataset.calendarTask);
+          setView(task && task.status === 'Complete' ? 'completed' : 'dashboard');
+          return;
+        }
+        const dayCell = event.target.closest('[data-select-date]');
+        if (!dayCell) return;
+        selectedDate = dayCell.dataset.selectDate;
+        document.getElementById('new-due-date').value = selectedDate;
+        renderCalendar();
+      });
+      document.getElementById('calendar-grid').addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const dayCell = event.target.closest('[data-select-date][role="gridcell"]');
+        if (!dayCell) return;
+        event.preventDefault();
+        selectedDate = dayCell.dataset.selectDate;
+        document.getElementById('new-due-date').value = selectedDate;
+        renderCalendar();
+      });
+      document.getElementById('prev-month').addEventListener('click', () => {
+        shownMonth--;
+        if (shownMonth < 0) { shownMonth = 11; shownYear--; }
+        renderCalendar();
+      });
+      document.getElementById('next-month').addEventListener('click', () => {
+        shownMonth++;
+        if (shownMonth > 11) { shownMonth = 0; shownYear++; }
+        renderCalendar();
+      });
+      document.getElementById('today-month').addEventListener('click', () => {
+        shownYear = 2026;
+        shownMonth = 9;
+        renderCalendar();
+      });
+      document.getElementById('homework-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const values = new FormData(form);
+        const subject = String(values.get('subject')).trim();
+        const description = String(values.get('description')).trim();
+        const dueDate = String(values.get('dueDate'));
+        const frequency = String(values.get('frequency') || 'once');
+        if (!subject || !description || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return;
+        const [year, month, day] = dueDate.split('-').map(Number);
+        const anchor = new Date(year, month - 1, day);
+        const seriesId = `series-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const intervals = { once: 1, weekly: 12, fortnightly: 12, monthly: 12 };
+        const occurrences = Array.from({ length: intervals[frequency] || 1 }, (_, index) => {
+          const occurrenceDate = new Date(anchor);
+          if (frequency === 'weekly' || frequency === 'fortnightly') occurrenceDate.setDate(anchor.getDate() + index * (frequency === 'weekly' ? 7 : 14));
+          if (frequency === 'monthly') {
+            const targetMonth = new Date(year, month - 1 + index, 1);
+            const lastDay = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+            occurrenceDate.setFullYear(targetMonth.getFullYear(), targetMonth.getMonth(), Math.min(day, lastDay));
+          }
+          return {
+            id: `${seriesId}-${index + 1}`,
+            seriesId,
+            subject,
+            description,
+            dueDate: dateKey(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate()),
+            frequency,
+            status: 'Due'
+          };
+        });
+        const task = occurrences[0];
+        tasks.push(...occurrences);
+        saveTasks();
+        activeFilter = 'All';
+        document.querySelector('[data-filter="All"]').click();
+        shownYear = year;
+        shownMonth = month - 1;
+        selectedDate = task.dueDate;
+        form.reset();
+        document.getElementById('new-due-date').value = task.dueDate;
+        document.getElementById('form-message').textContent = frequency === 'once' ? 'Homework added to your plan.' : `${occurrences.length} ${frequencyLabel(frequency).toLowerCase()} due dates added.`;
+        renderViews();
+      });
+
+      document.getElementById('new-due-date').value = selectedDate;
+      renderViews();
+      renderLastUpdated();
+      if (isLocked) setLocked(true);
+    })();
+  </script>
+</body>
+</html>
